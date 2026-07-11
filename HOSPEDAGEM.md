@@ -36,11 +36,11 @@ Recomendo o **Render** (tem plano gratuito). Passo a passo:
 1. Crie uma conta em https://render.com (pode entrar com o GitHub)
 2. **New → Web Service** e conecte o repositório
 3. Configure:
-   - **Root Directory:** `imovel-ia` (se o repo tiver a pasta pai)
-   - **Runtime:** Python
+   - **Root Directory:** (deixe em branco — o `server.py` já está na raiz do repositório)
+   - **Runtime:** Python 3
    - **Build Command:** (deixe vazio)
    - **Start Command:** `python server.py`
-   - **Plan:** Free
+   - **Instance Type / Plan:** Free
 4. Clique em **Create Web Service**. Em poucos minutos ele te dá uma URL fixa
    tipo `https://imovel-ia.onrender.com`.
 
