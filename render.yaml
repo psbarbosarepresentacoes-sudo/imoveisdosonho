@@ -1,0 +1,16 @@
+# Blueprint de deploy para o Render (https://render.com)
+# Coloque o conteúdo da pasta imovel-ia como raiz do repositório
+# (ou configure "Root Directory = imovel-ia" no painel do Render).
+services:
+  - type: web
+    name: imovel-ia
+    runtime: python
+    plan: free
+    buildCommand: ""
+    startCommand: python server.py
+    envVars:
+      - key: PYTHONIOENCODING
+        value: utf-8
+      # Para ativar o Tour com IA, adicione aqui sua chave:
+      # - key: IA_VIDEO_API_KEY
+      #   sync: false

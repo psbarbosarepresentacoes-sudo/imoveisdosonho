@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b3d75" />
+  <title>ImóvelIA — Encontre seu imóvel falando</title>
+
+  <!-- PWA (aplicativo instalável) -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ImóvelIA" />
+
+  <link rel="stylesheet" href="css/styles.css?v=2" />
+</head>
+<body>
+
+  <!-- Banner de instalação do app -->
+  <div id="bannerInstalar" class="banner-instalar" style="display:none">
+    <img src="icons/icon-192.png" alt="" class="banner-instalar__ico" />
+    <div class="banner-instalar__txt">
+      <b>Instale o ImóvelIA</b>
+      <span>Acesse como app na tela inicial</span>
+    </div>
+    <button id="btnInstalar" class="banner-instalar__btn">Instalar</button>
+    <button id="btnFecharBanner" class="banner-instalar__x">✕</button>
+  </div>
+
+  <!-- Cabeçalho -->
+  <header class="topo">
+    <div class="topo__linha">
+      <span class="logo"><svg class="logo-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#e6c04a" d="M12 3 2.5 10.8V21H9v-6h6v6h6.5V10.8z"/></svg>Imóvel<b>IA</b></span>
+      <button id="btnConta" class="topo__conta">Entrar</button>
+    </div>
+    <p class="topo__sub" id="topoSub">Fale ou digite o que procura</p>
+  </header>
+
+  <!-- ============ TELA: BUSCAR ============ -->
+  <div class="tela ativa" id="tela-buscar">
+    <section class="busca">
+      <div class="busca__linha">
+        <span class="busca__lupa" data-ico="buscar"></span>
+        <input id="campoBusca" class="busca__input" type="text" placeholder="Buscar por bairro, cidade ou fale..." autocomplete="off" />
+        <button id="btnVoz" class="busca__voz" title="Buscar por voz" data-ico="voz"></button>
+        <button id="btnBuscar" class="busca__btn" data-ico="filtro" title="Buscar"></button>
+      </div>
+      <p id="statusVoz" class="busca__status"></p>
+      <div id="chips" class="chips"></div>
+      <div class="exemplos">
+        <button class="exemplo">"casa no Tiradentes de 200 a 300 mil"</button>
+        <button class="exemplo">"apartamento 3 quartos"</button>
+        <button class="exemplo">"casa para alugar"</button>
+      </div>
+      <div id="interpretacao" class="interpretacao" style="display:none"></div>
+    </section>
+
+    <main class="conteudo">
+      <div class="conteudo__cabec">
+        <h2 id="tituloLista">Imóveis</h2>
+        <span id="contador" class="contador"></span>
+      </div>
+      <div id="grid" class="grid"></div>
+    </main>
+  </div>
+
+  <!-- ============ TELA: FEED ============ -->
+  <div class="tela" id="tela-feed">
+    <div class="feed__cabec"><h2>Feed</h2><span>Novidades dos corretores</span></div>
+    <div id="feed" class="feed"></div>
+  </div>
+
+  <!-- ============ TELA: ANUNCIAR ============ -->
+  <div class="tela" id="tela-anunciar">
+    <!-- se não estiver logado, mostra este aviso -->
+    <div id="anunciarBloqueado" class="cartao-login">
+      <div class="embreve" style="padding-bottom:6px">🔒<h2>Área do corretor</h2><p>Faça login ou crie sua conta para anunciar imóveis.</p></div>
+      <button class="botao-primario" id="btnIrLogin">Entrar / Criar conta</button>
+    </div>
+
+    <!-- formulário de anúncio (só quando logado) -->
+    <form id="formAnuncio" class="form-anuncio" style="display:none">
+      <h2 class="form-titulo">Novo anúncio</h2>
+
+      <label>Título do anúncio *</label>
+      <input name="titulo" required placeholder="Ex.: Casa 3 quartos com quintal" />
+
+      <div class="form-grid2">
+        <div>
+          <label>Tipo</label>
+          <select name="tipo"><option value="casa">Casa</option><option value="apartamento">Apartamento</option></select>
+        </div>
+        <div>
+          <label>Finalidade</label>
+          <select name="finalidade"><option value="venda">Venda</option><option value="aluguel">Aluguel</option></select>
+        </div>
+      </div>
+
+      <div class="form-grid2">
+        <div><label>Cidade</label><input name="cidade" placeholder="Campo Grande" /></div>
+        <div><label>Bairro</label><input name="bairro" placeholder="Tiradentes" /></div>
+      </div>
+
+      <label>Preço (R$)</label>
+      <input name="preco" inputmode="numeric" placeholder="250000" />
+
+      <div class="form-grid3">
+        <div><label>Quartos</label><input name="quartos" inputmode="numeric" placeholder="3" /></div>
+        <div><label>Banheiros</label><input name="banheiros" inputmode="numeric" placeholder="2" /></div>
+        <div><label>Vagas</label><input name="vagas" inputmode="numeric" placeholder="2" /></div>
+      </div>
+
+      <label>Área (m²)</label>
+      <input name="area" inputmode="numeric" placeholder="120" />
+
+      <label>Descrição</label>
+      <textarea name="descricao" rows="3" placeholder="Detalhes do imóvel..."></textarea>
+
+      <label>WhatsApp para contato</label>
+      <input name="whatsapp" inputmode="tel" placeholder="(67) 99999-0000" />
+      <small class="ajuda-campo">Os interessados falam com você por aqui. Deixe em branco para usar o telefone do seu cadastro.</small>
+
+      <!-- FOTOS -->
+      <label>Fotos do imóvel</label>
+      <div class="upload">
+        <input type="file" id="inputFotos" accept="image/*" multiple hidden />
+        <button type="button" class="botao-secundario" id="btnAddFotos">📷 Adicionar fotos</button>
+        <div id="miniaturas" class="miniaturas"></div>
+      </div>
+
+      <!-- VÍDEO -->
+      <div class="bloco-video">
+        <div class="bloco-video__cabec">
+          <span>🎬 Vídeo de apresentação</span>
+          <small>até 30s • estilo Reels</small>
+        </div>
+        <label>Trilha sonora (livre de direitos autorais)</label>
+        <div id="trilhas" class="trilhas"></div>
+        <button type="button" class="botao-secundario" id="btnGerarVideo">✨ Gerar vídeo com as fotos (grátis)</button>
+        <button type="button" class="botao-tour-ia" id="btnTourIA">🤖 Gerar TOUR com IA de verdade <span class="premium">Premium</span></button>
+        <div id="progressoVideo" class="progresso" style="display:none"><div id="progressoBarra" class="progresso__barra"></div><span id="progressoTexto">0%</span></div>
+        <video id="previewVideo" class="preview-video" style="display:none" controls playsinline></video>
+        <p class="aviso-direitos">⚖️ As trilhas são geradas pelo app e são livres de direitos autorais. Músicas "virais" reais exigem licenciamento (veja com o desenvolvedor).</p>
+      </div>
+
+      <button type="submit" class="botao-primario" id="btnPublicar">Publicar anúncio</button>
+      <p id="statusAnuncio" class="status-anuncio"></p>
+    </form>
+  </div>
+
+  <!-- ============ TELA: SALVOS (em breve) ============ -->
+  <div class="tela" id="tela-salvos">
+    <div class="embreve">❤️<h2>Salvos</h2><p>Em breve: guarde seus imóveis favoritos aqui.</p></div>
+  </div>
+
+  <!-- ============ TELA: PERFIL ============ -->
+  <div class="tela" id="tela-perfil">
+    <div id="perfilConteudo"></div>
+  </div>
+
+  <!-- ============ DETALHE DO ANÚNCIO (overlay) ============ -->
+  <div class="detalhe" id="detalhe">
+    <div class="detalhe__topo">
+      <button id="btnFecharDetalhe" class="detalhe__voltar" data-ico="voltar"></button>
+      <span>Anúncio</span>
+    </div>
+    <div id="detalheConteudo"></div>
+  </div>
+
+  <!-- ============ LIGHTBOX (foto ampliada) ============ -->
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox__fechar" id="lbFechar">✕</button>
+    <button class="lightbox__nav lb-prev" id="lbPrev">‹</button>
+    <div class="lightbox__palco" id="lbPalco"><img id="lbImg" alt="Foto do imóvel" /></div>
+    <button class="lightbox__nav lb-next" id="lbNext">›</button>
+    <div class="lightbox__contador" id="lbContador"></div>
+    <div class="lightbox__dica">Toque na foto para dar zoom</div>
+  </div>
+
+  <!-- ============ MODAL COMENTÁRIOS ============ -->
+  <div class="modal" id="modalComentarios">
+    <div class="modal__caixa">
+      <button class="modal__fechar" id="btnFecharComentarios" data-ico="fechar"></button>
+      <h3 class="modal__titulo">Comentários</h3>
+      <div id="listaComentarios" class="comentarios"></div>
+      <form id="formComentario" class="form-coment">
+        <input name="texto" placeholder="Escreva um comentário..." autocomplete="off" />
+        <button type="submit" class="coment-enviar" data-ico="enviar"></button>
+      </form>
+      <p id="statusComentario" class="status-auth"></p>
+    </div>
+  </div>
+
+  <!-- ============ MODAL TOUR COM IA ============ -->
+  <div class="modal" id="modalTourIA">
+    <div class="modal__caixa">
+      <button class="modal__fechar" id="btnFecharTourIA">✕</button>
+      <h3 class="modal__titulo">🤖 Tour com IA de verdade</h3>
+      <p class="modal__texto">
+        Diferente do vídeo grátis (que move a foto), aqui uma <b>IA gera um vídeo novo</b>:
+        a câmera <b>anda pelo cômodo</b> como uma filmagem real, entendendo a profundidade do ambiente.
+      </p>
+      <ul class="tour-lista">
+        <li>🎥 Movimento de câmera realista (não é foto se mexendo)</li>
+        <li>⏱️ Cada clipe leva ~1–3 min para a IA gerar</li>
+        <li>💳 Custo por vídeo (serviço de IA externo) — ex.: ~3 a 23 créditos por clipe</li>
+      </ul>
+      <div class="tour-aviso">
+        <b>Para ativar:</b> é preciso um plano pago no provedor de IA + chave de API.
+        Fale com o desenvolvedor para conectar. Enquanto isso, use o vídeo grátis acima.
+      </div>
+      <button class="botao-primario" id="btnFecharTourIA2">Entendi</button>
+    </div>
+  </div>
+
+  <!-- ============ MODAL PARCERIA ============ -->
+  <div class="modal" id="modalParceria">
+    <div class="modal__caixa">
+      <button class="modal__fechar" id="btnFecharParceria">✕</button>
+      <h3 class="modal__titulo">🤝 Fazer parceria</h3>
+      <p class="modal__texto" id="parceriaTexto">Envie uma proposta de parceria ao anunciante deste imóvel.</p>
+      <form id="formParceria" class="form-auth">
+        <textarea name="mensagem" rows="3" placeholder="Ex.: Tenho um cliente interessado. Podemos dividir a comissão?"></textarea>
+        <button class="botao-primario" type="submit">Enviar proposta</button>
+      </form>
+      <p id="statusParceria" class="status-auth"></p>
+    </div>
+  </div>
+
+  <!-- ============ MODAL LOGIN / CADASTRO ============ -->
+  <div class="modal" id="modalLogin">
+    <div class="modal__caixa">
+      <button class="modal__fechar" id="btnFecharLogin">✕</button>
+      <div class="tabs">
+        <button class="tab ativa" data-tab="entrar">Entrar</button>
+        <button class="tab" data-tab="criar">Criar conta</button>
+      </div>
+
+      <form id="formLogin" class="form-auth">
+        <input name="email" type="email" placeholder="E-mail" required />
+        <input name="senha" type="password" placeholder="Senha" required />
+        <button class="botao-primario" type="submit">Entrar</button>
+        <p class="dica-demo">Conta de teste: <b>demo@imovelia.com</b> / senha <b>demo123</b></p>
+      </form>
+
+      <form id="formCadastro" class="form-auth" style="display:none">
+        <div class="tipo-conta">
+          <label class="radio"><input type="radio" name="tipo" value="corretor" checked /> Corretor</label>
+          <label class="radio"><input type="radio" name="tipo" value="imobiliaria" /> Imobiliária</label>
+        </div>
+        <input name="nome" placeholder="Nome / Nome da imobiliária" required />
+        <input name="email" type="email" placeholder="E-mail" required />
+        <input name="telefone" placeholder="Telefone / WhatsApp" />
+        <input name="senha" type="password" placeholder="Senha (mín. 6 caracteres)" required />
+        <button class="botao-primario" type="submit">Criar conta</button>
+      </form>
+
+      <p id="statusAuth" class="status-auth"></p>
+    </div>
+  </div>
+
+  <!-- Barra inferior -->
+  <nav class="tabbar">
+    <button class="tabbar__item ativo" data-tela="buscar"><span class="tabbar__ico" data-ico="buscar"></span><span>Buscar</span></button>
+    <button class="tabbar__item" data-tela="feed"><span class="tabbar__ico" data-ico="feed"></span><span>Feed</span></button>
+    <button class="tabbar__item" data-tela="anunciar"><span class="tabbar__ico" data-ico="anunciar"></span><span>Anunciar</span></button>
+    <button class="tabbar__item" data-tela="salvos"><span class="tabbar__ico" data-ico="salvos"></span><span>Salvos</span></button>
+    <button class="tabbar__item" data-tela="perfil"><span class="tabbar__ico" data-ico="perfil"></span><span>Perfil</span></button>
+  </nav>
+
+  <script src="js/icons.js?v=2"></script>
+  <script src="js/parser.js?v=2"></script>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/video.js?v=2"></script>
+  <script src="js/feed.js?v=2"></script>
+  <script src="js/pwa.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
+</body>
+</html>

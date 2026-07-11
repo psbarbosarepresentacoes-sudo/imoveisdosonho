@@ -1,0 +1,2 @@
+# ImóvelIA não usa dependências externas — é Python puro (biblioteca padrão).
+# Este arquivo existe apenas para os serviços de hospedagem detectarem que é um app Python.

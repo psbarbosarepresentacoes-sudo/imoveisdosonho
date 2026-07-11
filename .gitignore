@@ -1,0 +1,10 @@
+# banco de dados local (não subir para o repositório)
+db.sqlite3
+
+# cache do Python
+__pycache__/
+*.pyc
+
+# logs e binários locais
+*.log
+cloudflared.exe

@@ -1,0 +1,22 @@
+{
+  "packageId": "com.imovelia.app",
+  "host": "SEU-APP.onrender.com",
+  "name": "ImóvelIA",
+  "launcherName": "ImóvelIA",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#0b3d75",
+  "themeColorDark": "#0b3d75",
+  "navigationColor": "#0b3d75",
+  "navigationColorDark": "#0b3d75",
+  "backgroundColor": "#ffffff",
+  "startUrl": "/",
+  "iconUrl": "https://SEU-APP.onrender.com/icons/icon-512.png",
+  "maskableIconUrl": "https://SEU-APP.onrender.com/icons/icon-512-maskable.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": { "path": "./android.keystore", "alias": "android" },
+  "fallbackType": "customtabs",
+  "enableNotifications": false,
+  "features": {}
+}
