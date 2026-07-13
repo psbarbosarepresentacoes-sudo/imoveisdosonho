@@ -1,2 +1,3 @@
-# ImóvelIA não usa dependências externas — é Python puro (biblioteca padrão).
-# Este arquivo existe apenas para os serviços de hospedagem detectarem que é um app Python.
+# Driver do PostgreSQL (usado só na nuvem, quando DATABASE_URL existe).
+# Localmente o app usa SQLite e não precisa deste pacote.
+psycopg[binary]

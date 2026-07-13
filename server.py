@@ -85,19 +85,97 @@ def processar_tour(job_id):
         con.close()
 
 # ------------------------------------------------------------
-#  Banco de dados
+#  Banco de dados: PostgreSQL na nuvem (se a variável DATABASE_URL
+#  existir) OU SQLite local (desenvolvimento). Um adaptador cuida
+#  das diferenças para o resto do código continuar igual.
 # ------------------------------------------------------------
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+# Render às vezes usa 'postgres://'; o psycopg espera 'postgresql://'
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+USAR_PG = bool(DATABASE_URL)
+
+if USAR_PG:
+    import psycopg
+    from psycopg.errors import IntegrityError as _PgIntegrityError
+    ERROS_INTEGRIDADE = (_PgIntegrityError,)
+    TIPO_ID = "SERIAL PRIMARY KEY"
+else:
+    ERROS_INTEGRIDADE = (sqlite3.IntegrityError,)
+    TIPO_ID = "INTEGER PRIMARY KEY AUTOINCREMENT"
+
+
+class Linha(dict):
+    """Linha de resultado que aceita acesso por nome (row['x']) e por índice (row[0])."""
+    def __init__(self, colunas, valores):
+        super().__init__(zip(colunas, valores))
+        self._vals = list(valores)
+
+    def __getitem__(self, chave):
+        if isinstance(chave, int):
+            return self._vals[chave]
+        return super().__getitem__(chave)
+
+
+class Cursor:
+    def __init__(self, cur):
+        self._cur = cur
+
+    def _colunas(self):
+        return [d[0] for d in self._cur.description] if self._cur.description else []
+
+    def fetchone(self):
+        r = self._cur.fetchone()
+        return Linha(self._colunas(), r) if r is not None else None
+
+    def fetchall(self):
+        cols = self._colunas()
+        return [Linha(cols, r) for r in self._cur.fetchall()]
+
+
+class Conexao:
+    """Interface única sobre sqlite3 e psycopg (placeholders, linhas, etc.)."""
+    def __init__(self, raw):
+        self._raw = raw
+
+    def execute(self, sql, params=()):
+        if USAR_PG:
+            sql = sql.replace("?", "%s")
+        cur = self._raw.cursor()
+        cur.execute(sql, params)
+        return Cursor(cur)
+
+    def executescript(self, sql):
+        for stmt in sql.split(";"):
+            if stmt.strip():
+                self.execute(stmt)
+
+    def commit(self):
+        self._raw.commit()
+
+    def rollback(self):
+        try:
+            self._raw.rollback()
+        except Exception:
+            pass
+
+    def close(self):
+        try:
+            self._raw.close()
+        except Exception:
+            pass
+
+
 def conectar():
-    con = sqlite3.connect(BANCO)
-    con.row_factory = sqlite3.Row
-    return con
+    if USAR_PG:
+        return Conexao(psycopg.connect(DATABASE_URL))
+    return Conexao(sqlite3.connect(BANCO))
 
 
 def criar_tabelas():
     con = conectar()
-    c = con.cursor()
-    c.executescript(
-        """
+    con.executescript(
+        ("""
         CREATE TABLE IF NOT EXISTS corretores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
@@ -185,7 +263,7 @@ def criar_tabelas():
             video_url TEXT,
             criado_em INTEGER
         );
-        """
+        """).replace("INTEGER PRIMARY KEY AUTOINCREMENT", TIPO_ID)
     )
     con.commit()
     con.close()
@@ -194,16 +272,23 @@ def criar_tabelas():
 def migrar():
     """Adiciona colunas novas em bancos já existentes (sem perder dados)."""
     con = conectar()
-    cols = [r[1] for r in con.execute("PRAGMA table_info(imoveis)").fetchall()]
-    if "contato" not in cols:
-        con.execute("ALTER TABLE imoveis ADD COLUMN contato TEXT")
-        # herda o telefone do dono do anúncio
-        con.execute(
-            "UPDATE imoveis SET contato = (SELECT telefone FROM corretores WHERE id = imoveis.corretor_id) "
-            "WHERE contato IS NULL"
-        )
-    con.commit()
-    con.close()
+    try:
+        if USAR_PG:
+            cols = [r[0] for r in con.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name='imoveis'"
+            ).fetchall()]
+        else:
+            cols = [r[1] for r in con.execute("PRAGMA table_info(imoveis)").fetchall()]
+        if "contato" not in cols:
+            con.execute("ALTER TABLE imoveis ADD COLUMN contato TEXT")
+            # herda o telefone do dono do anúncio
+            con.execute(
+                "UPDATE imoveis SET contato = (SELECT telefone FROM corretores WHERE id = imoveis.corretor_id) "
+                "WHERE contato IS NULL"
+            )
+        con.commit()
+    finally:
+        con.close()
 
 
 # ------------------------------------------------------------
@@ -286,19 +371,19 @@ def semear():
     # cria uma conta demo dona dos anúncios de exemplo
     h, s = hash_senha("demo123")
     cur = con.execute(
-        "INSERT INTO corretores (nome,email,senha_hash,senha_salt,tipo,telefone,criado_em) VALUES (?,?,?,?,?,?,?)",
+        "INSERT INTO corretores (nome,email,senha_hash,senha_salt,tipo,telefone,criado_em) VALUES (?,?,?,?,?,?,?) RETURNING id",
         ("Paulo Barbosa", "demo@imovelia.com", h, s, "corretor", "(67) 99999-0000", int(time.time())),
     )
-    dono = cur.lastrowid
+    dono = cur.fetchone()[0]
     for t in SEED:
         titulo,tipo,fin,cid,bairro,preco,q,ban,vag,area,desc,cor,fotos = t
         cur = con.execute(
             """INSERT INTO imoveis
                (corretor_id,corretor_nome,titulo,tipo,finalidade,cidade,bairro,preco,quartos,banheiros,vagas,area,descricao,criado_em)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
             (dono,cor,titulo,tipo,fin,cid,bairro,preco,q,ban,vag,area,desc,int(time.time())),
         )
-        imovel_id = cur.lastrowid
+        imovel_id = cur.fetchone()[0]
         for i, url in enumerate(fotos):
             con.execute("INSERT INTO fotos (imovel_id,dados,ordem) VALUES (?,?,?)", (imovel_id, url, i))
     con.commit()
@@ -499,13 +584,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         con = conectar()
         try:
             cur = con.execute(
-                "INSERT INTO corretores (nome,email,senha_hash,senha_salt,tipo,telefone,criado_em) VALUES (?,?,?,?,?,?,?)",
+                "INSERT INTO corretores (nome,email,senha_hash,senha_salt,tipo,telefone,criado_em) VALUES (?,?,?,?,?,?,?) RETURNING id",
                 (nome, email, h, s, tipo, telefone, int(time.time())),
             )
+            novo_id = cur.fetchone()[0]
             con.commit()
-            token = criar_sessao(cur.lastrowid)
+            token = criar_sessao(novo_id)
             return self.responder_json({"token": token, "nome": nome, "tipo": tipo})
-        except sqlite3.IntegrityError:
+        except ERROS_INTEGRIDADE:
+            con.rollback()
             return self.responder_json({"erro": "Este e-mail já está cadastrado."}, 409)
         finally:
             con.close()
@@ -536,7 +623,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             cur = con.execute(
                 """INSERT INTO imoveis
                    (corretor_id,corretor_nome,titulo,tipo,finalidade,cidade,bairro,preco,quartos,banheiros,vagas,area,descricao,video,contato,criado_em)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
                 (
                     cor["id"], cor["nome"], titulo,
                     d.get("tipo"), d.get("finalidade"), d.get("cidade"), d.get("bairro"),
@@ -545,7 +632,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     d.get("video"), contato, int(time.time()),
                 ),
             )
-            imovel_id = cur.lastrowid
+            imovel_id = cur.fetchone()[0]
             fotos = d.get("fotos") or []
             for i, f in enumerate(fotos):
                 con.execute("INSERT INTO fotos (imovel_id,dados,ordem) VALUES (?,?,?)", (imovel_id, f, i))
@@ -662,11 +749,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         try:
             cur = con.execute(
                 """INSERT INTO tours_ia (imovel_id,corretor_id,foto,prompt,status,criado_em)
-                   VALUES (?,?,?,?,?,?)""",
+                   VALUES (?,?,?,?,?,?) RETURNING id""",
                 (_int(d.get("imovel_id")), cor["id"], foto, d.get("prompt") or "",
                  "na_fila", int(time.time())),
             )
-            job_id = cur.lastrowid
+            job_id = cur.fetchone()[0]
             con.commit()
         finally:
             con.close()
