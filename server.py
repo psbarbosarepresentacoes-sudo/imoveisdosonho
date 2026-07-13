@@ -485,6 +485,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         cor = corretor_da_sessao(self.token())
         meu_id = cor["id"] if cor else None
         try:
+            if self.path == "/api/status":
+                n = con.execute("SELECT COUNT(*) FROM imoveis").fetchone()[0]
+                return self.responder_json({"ok": True, "db": "postgres" if USAR_PG else "sqlite", "imoveis": n})
+
             if self.path == "/api/imoveis":
                 rows = con.execute("SELECT * FROM imoveis ORDER BY criado_em DESC").fetchall()
                 lista = [imovel_para_json(r, con, corretor_id=meu_id, so_capa=True) for r in rows]
