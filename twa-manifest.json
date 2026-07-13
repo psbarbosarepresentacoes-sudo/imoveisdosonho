@@ -1,6 +1,6 @@
 {
   "packageId": "com.imovelia.app",
-  "host": "SEU-APP.onrender.com",
+  "host": "imoveisdosonho.onrender.com",
   "name": "ImóvelIA",
   "launcherName": "ImóvelIA",
   "display": "standalone",
@@ -11,8 +11,8 @@
   "navigationColorDark": "#0b3d75",
   "backgroundColor": "#ffffff",
   "startUrl": "/",
-  "iconUrl": "https://SEU-APP.onrender.com/icons/icon-512.png",
-  "maskableIconUrl": "https://SEU-APP.onrender.com/icons/icon-512-maskable.png",
+  "iconUrl": "https://imoveisdosonho.onrender.com/icons/icon-512.png",
+  "maskableIconUrl": "https://imoveisdosonho.onrender.com/icons/icon-512-maskable.png",
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
   "signingKey": { "path": "./android.keystore", "alias": "android" },
